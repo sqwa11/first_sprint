@@ -15,8 +15,7 @@ var (
 )
 
 func main() {
-
-	http.HandleFunc("/p", handleShorten)
+	http.HandleFunc("/", handleShorten)
 	http.HandleFunc("/{id}", handleRedirect)
 
 	fmt.Println("Server listening on port 8080...")
@@ -25,7 +24,7 @@ func main() {
 
 func handleShorten(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Сука", http.StatusMethodNotAllowed)
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -48,14 +47,14 @@ func handleShorten(w http.ResponseWriter, r *http.Request) {
 
 func handleRedirect(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "Сука", http.StatusMethodNotAllowed)
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	id := strings.TrimPrefix(r.URL.Path, "/")
 	longURL, exists := urlMap[id]
 	if !exists {
-		http.Error(w, "Ссылки нет", http.StatusNotFound)
+		http.Error(w, "Not Found", http.StatusNotFound)
 		return
 	}
 
@@ -65,7 +64,7 @@ func handleRedirect(w http.ResponseWriter, r *http.Request) {
 func generateShortURL() string {
 	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" // Доступные символы для генерации
 
-	b := make([]byte, 8)
+	b := make([]byte, shortenedURLLength)
 	for i := range b {
 		b[i] = letters[rand.Intn(len(letters))]
 	}
