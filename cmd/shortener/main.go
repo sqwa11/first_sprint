@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"math/rand"
 	"net/http"
@@ -28,8 +29,7 @@ func handleShorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	body := make([]byte, r.ContentLength)
-	_, err := r.Body.Read(body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
