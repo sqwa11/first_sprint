@@ -1,7 +1,7 @@
-package GET
+package get
 
 import (
-	"github.com/sqwa11/first_sprint/internal/app/POST"
+	"github.com/sqwa11/first_sprint/internal/app/post"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -12,10 +12,10 @@ func TestHandleRedirect(t *testing.T) {
 	shortURL := "abcd1234"
 	longURL := "https://google.com"
 
-	URLMap := POST.UrlMap
+	URLMap := post.UrlMap
 	URLMap[shortURL] = longURL
 
-	// Создаем новый запрос с методом GET
+	// Создаем новый запрос с методом get
 	req, err := http.NewRequest(http.MethodGet, "/"+shortURL, nil)
 	if err != nil {
 		t.Fatal(err)

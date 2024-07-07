@@ -1,4 +1,4 @@
-package POST
+package post
 
 import (
 	"fmt"

@@ -1,4 +1,4 @@
-package POST
+package post
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 )
 
 func TestHandleShorten(t *testing.T) {
-	// Создаем новый запрос с методом POST и телом запроса
+	// Создаем новый запрос с методом post и телом запроса
 	longURL := "https://oogle.com"
 	body := bytes.NewBufferString(longURL)
 	req, err := http.NewRequest(http.MethodPost, "/", body)

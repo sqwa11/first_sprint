@@ -1,7 +1,7 @@
-package GET
+package get
 
 import (
-	"github.com/sqwa11/first_sprint/internal/app/POST"
+	"github.com/sqwa11/first_sprint/internal/app/post"
 	"net/http"
 	"strings"
 )
@@ -13,7 +13,7 @@ func HandleRedirect(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id := strings.TrimPrefix(r.URL.Path, "/")
-	longURL, exists := POST.UrlMap[id]
+	longURL, exists := post.UrlMap[id]
 	if !exists {
 		http.Error(w, "Not Found", http.StatusNotFound)
 		return
