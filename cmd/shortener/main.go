@@ -42,7 +42,7 @@ func handleShorten(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
-	fmt.Fprintf(w, "%s/%s\n", baseURL, shortURL)
+	fmt.Fprintf(w, "%s/%s", baseURL, shortURL)
 }
 
 func handleRedirect(w http.ResponseWriter, r *http.Request) {
