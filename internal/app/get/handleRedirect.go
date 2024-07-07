@@ -13,7 +13,7 @@ func HandleRedirect(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id := strings.TrimPrefix(r.URL.Path, "/")
-	longURL, exists := post.UrlMap[id]
+	longURL, exists := post.URLMap[id]
 	if !exists {
 		http.Error(w, "Not Found", http.StatusNotFound)
 		return

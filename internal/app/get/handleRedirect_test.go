@@ -12,7 +12,7 @@ func TestHandleRedirect(t *testing.T) {
 	shortURL := "abcd1234"
 	longURL := "https://google.com"
 
-	URLMap := post.UrlMap
+	URLMap := post.URLMap
 	URLMap[shortURL] = longURL
 
 	// Создаем новый запрос с методом get

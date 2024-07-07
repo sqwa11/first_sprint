@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	UrlMap             = make(map[string]string) // Хранение сокращенных URL
+	URLMap             = make(map[string]string) // Хранение сокращенных URL
 	BaseURL            = "http://localhost:8080" // Базовый URL вашего сервиса
 	ShortenedURLLength = 8                       // Длина сокращенного URL
 )
@@ -29,7 +29,7 @@ func HandleShorten(w http.ResponseWriter, r *http.Request) {
 	longURL := strings.TrimSpace(string(body))
 	shortURL := generateShortURL()
 
-	UrlMap[shortURL] = longURL
+	URLMap[shortURL] = longURL
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
