@@ -1,40 +1,43 @@
 package post
 
 import (
-	"fmt"
-	"io"
 	"math/rand"
 	"net/http"
 	"strings"
 )
 
-var (
-	URLMap             = make(map[string]string) // Хранение сокращенных URL
-	BaseURL            = "http://localhost:8080" // Базовый URL вашего сервиса
-	ShortenedURLLength = 8                       // Длина сокращенного URL
-)
+var URLMap = map[string]string{}
+var baseURL string
+
+func SetBaseURL(url string) {
+	baseURL = url
+}
 
 func HandleShorten(w http.ResponseWriter, r *http.Request) {
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	body := make([]byte, r.ContentLength)
+	r.Body.Read(body)
+	longURL := strings.TrimSpace(string(body))
+
+	if longURL == "" {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
 
-	longURL := strings.TrimSpace(string(body))
 	shortURL := generateShortURL()
-
 	URLMap[shortURL] = longURL
 
-	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
-	fmt.Fprintf(w, "%s/%s", BaseURL, shortURL)
+	w.Write([]byte(baseURL + "/" + shortURL))
 }
 
 func generateShortURL() string {
-	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" // Доступные символы для генерации
-
-	b := make([]byte, ShortenedURLLength)
+	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	b := make([]byte, 8)
 	for i := range b {
 		b[i] = letters[rand.Intn(len(letters))]
 	}
