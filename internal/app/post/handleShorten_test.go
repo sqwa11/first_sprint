@@ -2,7 +2,7 @@ package post
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -11,7 +11,7 @@ import (
 
 func TestHandleShorten(t *testing.T) {
 	// Создаем новый запрос с методом post и телом запроса
-	longURL := "https://oogle.com"
+	longURL := "https://google.com"
 	body := bytes.NewBufferString(longURL)
 	req, err := http.NewRequest(http.MethodPost, "/", body)
 	if err != nil {
@@ -31,20 +31,19 @@ func TestHandleShorten(t *testing.T) {
 	}
 
 	// Проверяем содержимое ответа
-	responseBody, err := ioutil.ReadAll(rr.Body)
+	responseBody, err := io.ReadAll(rr.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	shortURL := strings.TrimSpace(string(responseBody))
-	BaseURL := BaseURL
-	if !strings.HasPrefix(shortURL, BaseURL+"/") {
+	baseURL := BaseURL
+	if !strings.HasPrefix(shortURL, baseURL+"/") {
 		t.Errorf("handler returned unexpected body: got %v", shortURL)
 	}
 
-	// Проверяем, что longURL сохранен в urlMap под сгенерированным shortURL
-	id := strings.TrimPrefix(shortURL, BaseURL+"/")
-	URLMap := UrlMap
+	// Проверяем, что longURL сохранен в URLMap под сгенерированным shortURL
+	id := strings.TrimPrefix(shortURL, baseURL+"/")
 	savedURL, exists := URLMap[id]
 	if !exists {
 		t.Errorf("short URL not saved in map")
