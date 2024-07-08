@@ -7,11 +7,18 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func TestHandleShorten(t *testing.T) {
+	// Инициализируем маршрутизатор и задаем базовый URL
+	router := chi.NewRouter()
+	SetBaseURL("http://localhost:8080")
+	router.Post("/", HandleShorten)
+
 	// Создаем новый запрос с методом POST и телом запроса
-	longURL := "https://google.com"
+	longURL := "https://example.com"
 	body := bytes.NewBufferString(longURL)
 	req, err := http.NewRequest(http.MethodPost, "/", body)
 	if err != nil {
@@ -20,10 +27,9 @@ func TestHandleShorten(t *testing.T) {
 
 	// Создаем ResponseRecorder для получения ответа
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(HandleShorten)
 
-	// Вызываем хендлер
-	handler.ServeHTTP(rr, req)
+	// Вызываем хендлер через маршрутизатор
+	router.ServeHTTP(rr, req)
 
 	// Проверяем статус код ответа
 	if status := rr.Code; status != http.StatusCreated {
@@ -37,12 +43,12 @@ func TestHandleShorten(t *testing.T) {
 	}
 
 	shortURL := strings.TrimSpace(string(responseBody))
-	if !strings.HasPrefix(shortURL, BaseURL+"/") {
+	if !strings.HasPrefix(shortURL, "http://localhost:8080/") {
 		t.Errorf("handler returned unexpected body: got %v", shortURL)
 	}
 
 	// Проверяем, что longURL сохранен в URLMap под сгенерированным shortURL
-	id := strings.TrimPrefix(shortURL, BaseURL+"/")
+	id := strings.TrimPrefix(shortURL, "http://localhost:8080/")
 	savedURL, exists := URLMap[id]
 	if !exists {
 		t.Errorf("short URL not saved in map")

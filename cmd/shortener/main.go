@@ -1,23 +1,32 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/sqwa11/first_sprint/internal/app/config"
 	"github.com/sqwa11/first_sprint/internal/app/get"
 	"github.com/sqwa11/first_sprint/internal/app/post"
 )
 
 func main() {
+	cfg := config.NewConfig()
+	if err := cfg.Validate(); err != nil {
+		log.Fatalf("Invalid configuration: %v", err)
+	}
+
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
+
+	post.SetBaseURL(cfg.BaseURL)
 
 	r.Post("/", post.HandleShorten)
 	r.Get("/{id}", get.HandleRedirect)
 
-	fmt.Println("Server listening on port 8080...")
-	log.Fatal(http.ListenAndServe(":8080", r))
+	log.Printf("Server listening on address %s...\n", cfg.Address)
+	if err := http.ListenAndServe(cfg.Address, r); err != nil {
+		log.Fatalf("Failed to start server: %v", err)
+	}
 }

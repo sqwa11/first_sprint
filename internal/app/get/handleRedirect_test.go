@@ -1,16 +1,23 @@
 package get
 
 import (
-	"github.com/sqwa11/first_sprint/internal/app/post"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/sqwa11/first_sprint/internal/app/post"
 )
 
 func TestHandleRedirect(t *testing.T) {
+	// Инициализируем маршрутизатор и задаем базовый URL
+	router := chi.NewRouter()
+	post.SetBaseURL("http://localhost:8080")
+	router.Get("/{id}", HandleRedirect)
+
 	// Создаем новый сокращенный URL и сохраняем его в URLMap
 	shortURL := "abcd1234"
-	longURL := "https://google.com"
+	longURL := "https://example.com"
 	post.URLMap[shortURL] = longURL
 
 	// Создаем новый запрос с методом GET
@@ -21,10 +28,9 @@ func TestHandleRedirect(t *testing.T) {
 
 	// Создаем ResponseRecorder для получения ответа
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(HandleRedirect)
 
-	// Вызываем хендлер
-	handler.ServeHTTP(rr, req)
+	// Вызываем хендлер через маршрутизатор
+	router.ServeHTTP(rr, req)
 
 	// Проверяем статус код ответа
 	if status := rr.Code; status != http.StatusTemporaryRedirect {
