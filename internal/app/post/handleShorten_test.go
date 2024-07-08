@@ -2,7 +2,7 @@ package post
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -30,7 +30,7 @@ func TestHandleShorten(t *testing.T) {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusCreated)
 	}
 
-	responseBody, err := ioutil.ReadAll(rr.Body)
+	responseBody, err := io.ReadAll(rr.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
