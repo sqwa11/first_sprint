@@ -1,7 +1,6 @@
 package post
 
 import (
-	"bytes"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -19,21 +18,27 @@ func TestHandleShorten(t *testing.T) {
 	router := chi.NewRouter()
 	router.Post("/", HandleShorten)
 
+	ts := httptest.NewServer(router)
+	defer ts.Close()
+
 	longURL := "https://example.com"
-	body := bytes.NewBufferString(longURL)
-	req, err := http.NewRequest(http.MethodPost, "/", body)
+	body := strings.NewReader(longURL)
+	req, err := http.NewRequest(http.MethodPost, ts.URL+"/", body)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	rr := httptest.NewRecorder()
-	router.ServeHTTP(rr, req)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
 
-	if status := rr.Code; status != http.StatusCreated {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusCreated)
+	if resp.StatusCode != http.StatusCreated {
+		t.Errorf("handler returned wrong status code: got %v want %v", resp.StatusCode, http.StatusCreated)
 	}
 
-	responseBody, err := io.ReadAll(rr.Body)
+	responseBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
