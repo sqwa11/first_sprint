@@ -10,7 +10,7 @@ import (
 )
 
 func TestHandleShorten(t *testing.T) {
-	// Создаем новый запрос с методом post и телом запроса
+	// Создаем новый запрос с методом POST и телом запроса
 	longURL := "https://google.com"
 	body := bytes.NewBufferString(longURL)
 	req, err := http.NewRequest(http.MethodPost, "/", body)
@@ -37,13 +37,12 @@ func TestHandleShorten(t *testing.T) {
 	}
 
 	shortURL := strings.TrimSpace(string(responseBody))
-	baseURL := BaseURL
-	if !strings.HasPrefix(shortURL, baseURL+"/") {
+	if !strings.HasPrefix(shortURL, BaseURL+"/") {
 		t.Errorf("handler returned unexpected body: got %v", shortURL)
 	}
 
 	// Проверяем, что longURL сохранен в URLMap под сгенерированным shortURL
-	id := strings.TrimPrefix(shortURL, baseURL+"/")
+	id := strings.TrimPrefix(shortURL, BaseURL+"/")
 	savedURL, exists := URLMap[id]
 	if !exists {
 		t.Errorf("short URL not saved in map")
