@@ -6,12 +6,15 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/sqwa11/first_sprint/config"
 	"github.com/sqwa11/first_sprint/internal/app/post"
 )
 
 func TestHandleRedirect(t *testing.T) {
+	cfg := config.NewConfig()
+	post.SetBaseURL(cfg.BaseURL)
+
 	router := chi.NewRouter()
-	post.SetBaseURL("http://localhost:8080")
 	router.Get("/{id}", HandleRedirect)
 
 	shortURL := "abcd1234"

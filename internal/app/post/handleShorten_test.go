@@ -9,11 +9,14 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/sqwa11/first_sprint/config"
 )
 
 func TestHandleShorten(t *testing.T) {
+	cfg := config.NewConfig()
+	SetBaseURL(cfg.BaseURL)
+
 	router := chi.NewRouter()
-	SetBaseURL("http://localhost:8080")
 	router.Post("/", HandleShorten)
 
 	longURL := "https://example.com"
@@ -36,11 +39,11 @@ func TestHandleShorten(t *testing.T) {
 	}
 
 	shortURL := strings.TrimSpace(string(responseBody))
-	if !strings.HasPrefix(shortURL, "http://localhost:8080/") {
+	if !strings.HasPrefix(shortURL, cfg.BaseURL+"/") {
 		t.Errorf("handler returned unexpected body: got %v", shortURL)
 	}
 
-	id := strings.TrimPrefix(shortURL, "http://localhost:8080/")
+	id := strings.TrimPrefix(shortURL, cfg.BaseURL+"/")
 	savedURL, exists := URLMap[id]
 	if !exists {
 		t.Errorf("short URL not saved in map")
