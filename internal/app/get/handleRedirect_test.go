@@ -11,11 +11,9 @@ func TestHandleRedirect(t *testing.T) {
 	// Создаем новый сокращенный URL и сохраняем его в URLMap
 	shortURL := "abcd1234"
 	longURL := "https://google.com"
+	post.URLMap[shortURL] = longURL
 
-	URLMap := post.URLMap
-	URLMap[shortURL] = longURL
-
-	// Создаем новый запрос с методом get
+	// Создаем новый запрос с методом GET
 	req, err := http.NewRequest(http.MethodGet, "/"+shortURL, nil)
 	if err != nil {
 		t.Fatal(err)

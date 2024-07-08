@@ -15,11 +15,6 @@ var (
 )
 
 func HandleShorten(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -33,7 +28,7 @@ func HandleShorten(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
-	fmt.Fprintf(w, "%s/%s", BaseURL, shortURL)
+	fmt.Fprintf(w, "%s/%s\n", BaseURL, shortURL)
 }
 
 func generateShortURL() string {

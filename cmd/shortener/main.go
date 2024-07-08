@@ -1,15 +1,23 @@
 package main
 
 import (
-	"github.com/sqwa11/first_sprint/internal/app/get"
-	"github.com/sqwa11/first_sprint/internal/app/post"
+	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/sqwa11/first_sprint/internal/app/get"
+	"github.com/sqwa11/first_sprint/internal/app/post"
 )
 
 func main() {
-	http.HandleFunc("/", post.HandleShorten)
-	http.HandleFunc("/{id}", get.HandleRedirect)
+	r := chi.NewRouter()
+	r.Use(middleware.Logger)
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	r.Post("/", post.HandleShorten)
+	r.Get("/{id}", get.HandleRedirect)
+
+	fmt.Println("Server listening on port 8080...")
+	log.Fatal(http.ListenAndServe(":8080", r))
 }
