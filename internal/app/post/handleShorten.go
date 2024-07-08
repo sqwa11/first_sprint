@@ -28,7 +28,7 @@ func HandleShorten(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
-	fmt.Fprintf(w, "%s/%s\n", BaseURL, shortURL)
+	fmt.Fprintf(w, "%s/%s", BaseURL, shortURL)
 }
 
 func generateShortURL() string {
