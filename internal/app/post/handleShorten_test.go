@@ -14,12 +14,11 @@ func TestHandleShorten(t *testing.T) {
 	defer ts.Close()
 
 	cfg := &config.Config{
-		ServerAddress: ts.URL,
-		BaseURL:       ts.URL,
+		BaseURL: ts.URL, // Используем только BaseURL
 	}
 	SetBaseURL(cfg.BaseURL)
 
-	longURL := "https://google.com"
+	longURL := "https://example.com"
 	body := strings.NewReader(longURL)
 	resp, err := http.Post(ts.URL, "text/plain", body)
 	if err != nil {
