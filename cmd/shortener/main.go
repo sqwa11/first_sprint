@@ -5,22 +5,28 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/sqwa11/first_sprint/config"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/sqwa11/first_sprint/internal/app/config"
 	"github.com/sqwa11/first_sprint/internal/app/get"
 	"github.com/sqwa11/first_sprint/internal/app/post"
 )
 
 func main() {
 	cfg := config.NewConfig()
+	if err := cfg.Validate(); err != nil {
+		log.Fatalf("Invalid configuration: %v", err)
+	}
+
+	r := chi.NewRouter()
+	r.Use(middleware.Logger)
+
 	post.SetBaseURL(cfg.BaseURL)
 
-	router := chi.NewRouter()
-	router.Post("/", post.HandleShorten)
-	router.Get("/{id}", get.HandleRedirect)
+	r.Post("/", post.HandleShorten)
+	r.Get("/{id}", get.HandleRedirect)
 
-	log.Printf("Starting server at %s\n", cfg.ServerAddress)
-	err := http.ListenAndServe(cfg.ServerAddress, router)
-	if err != nil {
-		log.Fatal(err)
+	log.Printf("Server listening on address %s...\n", cfg.Address)
+	if err := http.ListenAndServe(cfg.Address, r); err != nil {
+		log.Fatalf("Failed to start server: %v", err)
 	}
 }

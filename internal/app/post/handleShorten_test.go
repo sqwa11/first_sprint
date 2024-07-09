@@ -1,47 +1,46 @@
 package post
 
 import (
-	"github.com/sqwa11/first_sprint/config"
+	"bytes"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func TestHandleShorten(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(HandleShorten))
-	defer ts.Close()
-
-	cfg := &config.Config{
-		BaseURL: ts.URL, // Используем только BaseURL
-	}
-	SetBaseURL(cfg.BaseURL)
+	router := chi.NewRouter()
+	SetBaseURL("http://localhost:8080")
+	router.Post("/", HandleShorten)
 
 	longURL := "https://example.com"
-	body := strings.NewReader(longURL)
-	resp, err := http.Post(ts.URL, "text/plain", body)
+	body := bytes.NewBufferString(longURL)
+	req, err := http.NewRequest(http.MethodPost, "/", body)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusCreated {
-		t.Errorf("handler returned wrong status code: got %v want %v", resp.StatusCode, http.StatusCreated)
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusCreated {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusCreated)
 	}
 
-	responseBody, err := io.ReadAll(resp.Body)
+	responseBody, err := io.ReadAll(rr.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	shortURL := strings.TrimSpace(string(responseBody))
-	if !strings.HasPrefix(shortURL, cfg.BaseURL+"/") {
+	if !strings.HasPrefix(shortURL, "http://localhost:8080/") {
 		t.Errorf("handler returned unexpected body: got %v", shortURL)
 	}
 
-	id := strings.TrimPrefix(shortURL, cfg.BaseURL+"/")
-
+	id := strings.TrimPrefix(shortURL, "http://localhost:8080/")
 	savedURL, exists := URLMap[id]
 	if !exists {
 		t.Errorf("short URL not saved in map")
