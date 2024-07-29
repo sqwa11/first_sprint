@@ -20,31 +20,15 @@ func HandleShorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	body := make([]byte, r.ContentLength)
-	r.Body.Read(body)
-	longURL := strings.TrimSpace(string(body))
-
-	if longURL == "" {
-		http.Error(w, "Bad Request", http.StatusBadRequest)
-		return
-	}
-
-	shortURL := generateShortURL()
-	URLMap[shortURL] = longURL
-
-	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(baseURL + "/" + shortURL))
-}
-
-func HandleAPIPostShorten(w http.ResponseWriter, r *http.Request) {
-	var req struct {
+	var reqBody struct {
 		URL string `json:"url"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
-	longURL := strings.TrimSpace(req.URL)
+
+	longURL := strings.TrimSpace(reqBody.URL)
 	if longURL == "" {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
@@ -52,16 +36,10 @@ func HandleAPIPostShorten(w http.ResponseWriter, r *http.Request) {
 
 	shortURL := generateShortURL()
 	URLMap[shortURL] = longURL
-
-	resp := struct {
-		Result string `json:"result"`
-	}{
-		Result: baseURL + "/" + shortURL,
-	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(resp)
+	json.NewEncoder(w).Encode(map[string]string{"result": baseURL + "/" + shortURL})
 }
 
 func generateShortURL() string {

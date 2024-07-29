@@ -2,18 +2,15 @@ package main
 
 import (
 	"compress/gzip"
-	"go.uber.org/zap"
-	"io"
-	"log"
-	"net/http"
-	"strings"
-	"time"
-
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/sqwa11/first_sprint/internal/app/config"
 	"github.com/sqwa11/first_sprint/internal/app/get"
 	"github.com/sqwa11/first_sprint/internal/app/post"
+	"io"
+	"log"
+	"net/http"
+	"strings"
 )
 
 func main() {
@@ -28,71 +25,17 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(WithLogging(logger))
-	r.Use(DecompressMiddleware) // Добавляем middleware для распаковки запросов
-	r.Use(CompressMiddleware)   // Добавляем middleware для сжатия ответов
+	r.Use(DecompressMiddleware)
+	r.Use(CompressMiddleware)
 
 	post.SetBaseURL(cfg.BaseURL)
 
-	r.Post("/", post.HandleShorten)
+	r.Post("/api/shorten", post.HandleShorten) // Добавляем маршрут для /api/shorten
 	r.Get("/{id}", get.HandleRedirect)
 
 	log.Printf("Server listening on address %s...\n", cfg.Address)
 	if err := http.ListenAndServe(cfg.Address, r); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
-	}
-}
-
-type responseData struct {
-	status int
-	size   int
-}
-
-type loggingResponseWriter struct {
-	http.ResponseWriter
-	responseData *responseData
-}
-
-func (r *loggingResponseWriter) Write(b []byte) (int, error) {
-	size, err := r.ResponseWriter.Write(b)
-	r.responseData.size += size
-	return size, err
-}
-
-func (r *loggingResponseWriter) WriteHeader(statusCode int) {
-	r.ResponseWriter.WriteHeader(statusCode)
-	r.responseData.status = statusCode
-}
-
-func NewLogger() *zap.SugaredLogger {
-	logger, _ := zap.NewProduction()
-	return logger.Sugar()
-}
-
-func WithLogging(logger *zap.SugaredLogger) func(http.Handler) http.Handler {
-	return func(h http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			start := time.Now()
-
-			responseData := &responseData{
-				status: 0,
-				size:   0,
-			}
-			lw := loggingResponseWriter{
-				ResponseWriter: w,
-				responseData:   responseData,
-			}
-			h.ServeHTTP(&lw, r)
-
-			duration := time.Since(start)
-
-			logger.Infow("Handled request",
-				"uri", r.RequestURI,
-				"method", r.Method,
-				"status", responseData.status,
-				"duration", duration,
-				"size", responseData.size,
-			)
-		})
 	}
 }
 
