@@ -30,6 +30,7 @@ func main() {
 
 	r.Post("/", post.HandleShorten)
 	r.Get("/{id}", get.HandleRedirect)
+	r.Post("/api/shorten", post.HandleAPIPostShorten) // Новый маршрут для API
 
 	log.Printf("Server listening on address %s...\n", cfg.Address)
 	if err := http.ListenAndServe(cfg.Address, r); err != nil {
