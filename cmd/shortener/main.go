@@ -1,9 +1,11 @@
 package main
 
 import (
-	"go.uber.org/zap"
+	"compress/gzip"
+	"io"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -11,6 +13,7 @@ import (
 	"github.com/sqwa11/first_sprint/internal/app/config"
 	"github.com/sqwa11/first_sprint/internal/app/get"
 	"github.com/sqwa11/first_sprint/internal/app/post"
+	"go.uber.org/zap"
 )
 
 func main() {
@@ -25,6 +28,7 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(WithLogging(logger)) // Добавляем middleware логирования
+	r.Use(WithGzipCompression) // Middleware для gzip
 
 	post.SetBaseURL(cfg.BaseURL)
 
@@ -89,4 +93,39 @@ func WithLogging(logger *zap.SugaredLogger) func(http.Handler) http.Handler {
 			)
 		})
 	}
+}
+
+func WithGzipCompression(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		acceptEncoding := r.Header.Get("Accept-Encoding")
+		if strings.Contains(acceptEncoding, "gzip") {
+			gzipWriter := gzip.NewWriter(w)
+			defer gzipWriter.Close()
+			w.Header().Set("Content-Encoding", "gzip")
+			w = &gzipResponseWriter{ResponseWriter: w, Writer: gzipWriter}
+		}
+
+		if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
+			r.Body = &gzipReadCloser{ReadCloser: r.Body}
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+type gzipResponseWriter struct {
+	http.ResponseWriter
+	Writer io.Writer
+}
+
+func (w *gzipResponseWriter) Write(b []byte) (int, error) {
+	return w.Writer.Write(b)
+}
+
+type gzipReadCloser struct {
+	io.ReadCloser
+}
+
+func (rc *gzipReadCloser) Read(p []byte) (int, error) {
+	return rc.ReadCloser.Read(p)
 }

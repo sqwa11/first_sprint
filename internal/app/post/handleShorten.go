@@ -1,7 +1,8 @@
 package post
 
 import (
-	"encoding/json"
+	"compress/gzip"
+	"io"
 	"math/rand"
 	"net/http"
 	"strings"
@@ -20,15 +21,13 @@ func HandleShorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var reqBody struct {
-		URL string `json:"url"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+	body, err := readBody(r)
+	if err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
 
-	longURL := strings.TrimSpace(reqBody.URL)
+	longURL := strings.TrimSpace(string(body))
 	if longURL == "" {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
@@ -37,9 +36,24 @@ func HandleShorten(w http.ResponseWriter, r *http.Request) {
 	shortURL := generateShortURL()
 	URLMap[shortURL] = longURL
 
+	response := baseURL + "/" + shortURL
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{"result": baseURL + "/" + shortURL})
+	w.Write([]byte(`{"result":"` + response + `"}`))
+}
+
+func readBody(r *http.Request) ([]byte, error) {
+	var reader io.Reader = r.Body
+	if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
+		gzipReader, err := gzip.NewReader(r.Body)
+		if err != nil {
+			return nil, err
+		}
+		defer gzipReader.Close()
+		reader = gzipReader
+	}
+
+	return io.ReadAll(reader)
 }
 
 func generateShortURL() string {
