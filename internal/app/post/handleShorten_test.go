@@ -2,6 +2,7 @@ package post
 
 import (
 	"bytes"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -16,7 +17,6 @@ func TestHandleShorten(t *testing.T) {
 
 	longURL := "https://example.com"
 	body := bytes.NewBufferString(longURL)
-
 	req, err := http.NewRequest(http.MethodPost, "/api/shorten", body)
 	if err != nil {
 		t.Fatal(err)
@@ -30,8 +30,14 @@ func TestHandleShorten(t *testing.T) {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusCreated)
 	}
 
-	expectedSubstring := "http://localhost:8080/"
-	if !bytes.Contains(rr.Body.Bytes(), []byte(expectedSubstring)) {
-		t.Errorf("handler returned unexpected body: got %v want substring %v", rr.Body.String(), expectedSubstring)
+	var response map[string]string
+	err = json.NewDecoder(rr.Body).Decode(&response)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "http://localhost:8080/abcd1234" // Use actual short URL from response
+	if response["result"] != expected {
+		t.Errorf("handler returned unexpected body: got %v want %v", response["result"], expected)
 	}
 }
