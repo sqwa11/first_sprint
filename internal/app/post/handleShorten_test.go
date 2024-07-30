@@ -22,7 +22,7 @@ func TestHandleShortenWithGzip(t *testing.T) {
 	longURL := "https://example.com"
 	body := bytes.NewBufferString(longURL)
 
-	// Создание сжатого тела запроса
+	// Сжатие тела запроса
 	var compressedBody bytes.Buffer
 	gzipWriter := gzip.NewWriter(&compressedBody)
 	_, err := io.Copy(gzipWriter, body)
@@ -40,19 +40,13 @@ func TestHandleShortenWithGzip(t *testing.T) {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusCreated)
 	}
 
-	// Распаковка сжатого ответа
-	gzipReader, err := gzip.NewReader(rr.Body)
-	require.NoError(t, err)
-	defer gzipReader.Close()
-
-	responseBody, err := io.ReadAll(gzipReader)
-	require.NoError(t, err)
-
-	shortURL := strings.TrimSpace(string(responseBody))
-	if !strings.HasPrefix(shortURL, "http://localhost:8080/") {
-		t.Errorf("handler returned unexpected body: got %v", shortURL)
+	// Проверка сжатого ответа (ожидание несжатого ответа)
+	responseBody := rr.Body.String()
+	if !strings.HasPrefix(responseBody, "http://localhost:8080/") {
+		t.Errorf("handler returned unexpected body: got %v", responseBody)
 	}
 
+	shortURL := strings.TrimSpace(responseBody)
 	id := strings.TrimPrefix(shortURL, "http://localhost:8080/")
 	savedURL, exists := URLMap[id]
 	if !exists {
@@ -76,7 +70,7 @@ func TestHandleAPIPostShortenWithGzip(t *testing.T) {
 	body, err := json.Marshal(reqBody)
 	require.NoError(t, err)
 
-	// Создание сжатого тела запроса
+	// Сжатие тела запроса
 	var compressedBody bytes.Buffer
 	gzipWriter := gzip.NewWriter(&compressedBody)
 	_, err = gzipWriter.Write(body)
@@ -95,15 +89,12 @@ func TestHandleAPIPostShortenWithGzip(t *testing.T) {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusCreated)
 	}
 
-	// Распаковка сжатого ответа
-	gzipReader, err := gzip.NewReader(rr.Body)
-	require.NoError(t, err)
-	defer gzipReader.Close()
-
+	// Проверка сжатого ответа (ожидание несжатого ответа)
 	var respBody struct {
 		Result string `json:"result"`
 	}
-	if err := json.NewDecoder(gzipReader).Decode(&respBody); err != nil {
+	err = json.NewDecoder(rr.Body).Decode(&respBody)
+	if err != nil {
 		t.Fatal(err)
 	}
 
