@@ -1,22 +1,35 @@
 package config
 
-import "errors"
+import (
+	"flag"
+	"fmt"
+)
 
+// Config содержит конфигурацию сервиса
 type Config struct {
-	BaseURL string
 	Address string
+	BaseURL string
 }
 
+// NewConfig инициализирует конфигурацию из аргументов командной строки
 func NewConfig() *Config {
+	address := flag.String("a", "localhost:8080", "Address to run HTTP server")
+	baseURL := flag.String("b", "http://localhost:8080", "Base URL for shortened URLs")
+
+	flag.Parse()
+
 	return &Config{
-		BaseURL: "http://localhost:8080",
-		Address: ":8080",
+		Address: *address,
+		BaseURL: *baseURL,
 	}
 }
 
 func (c *Config) Validate() error {
-	if c.BaseURL == "" || c.Address == "" {
-		return errors.New("missing configuration")
+	if c.Address == "" {
+		return fmt.Errorf("address cannot be empty")
+	}
+	if c.BaseURL == "" {
+		return fmt.Errorf("base URL cannot be empty")
 	}
 	return nil
 }
