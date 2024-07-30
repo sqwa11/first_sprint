@@ -40,7 +40,7 @@ func TestHandleShortenWithGzip(t *testing.T) {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusCreated)
 	}
 
-	// Проверка сжатого ответа (ожидание несжатого ответа)
+	// Проверка результата ответа
 	responseBody := rr.Body.String()
 	if !strings.HasPrefix(responseBody, "http://localhost:8080/") {
 		t.Errorf("handler returned unexpected body: got %v", responseBody)
@@ -89,7 +89,7 @@ func TestHandleAPIPostShortenWithGzip(t *testing.T) {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusCreated)
 	}
 
-	// Проверка сжатого ответа (ожидание несжатого ответа)
+	// Проверка результата ответа
 	var respBody struct {
 		Result string `json:"result"`
 	}
