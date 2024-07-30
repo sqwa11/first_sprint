@@ -2,6 +2,7 @@ package post
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -10,19 +11,21 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/stretchr/testify/require"
 )
 
-func TestHandleShorten(t *testing.T) {
+func TestHandleShortenWithGzip(t *testing.T) {
 	router := chi.NewRouter()
 	SetBaseURL("http://localhost:8080")
 	router.Post("/", HandleShorten)
 
 	longURL := "https://example.com"
-	body := bytes.NewBufferString(longURL)
+	body := newGzipBuffer(t, longURL)
 	req, err := http.NewRequest(http.MethodPost, "/", body)
 	if err != nil {
 		t.Fatal(err)
 	}
+	req.Header.Set("Content-Encoding", "gzip")
 
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
@@ -51,7 +54,16 @@ func TestHandleShorten(t *testing.T) {
 	}
 }
 
-func TestHandleAPIPostShorten(t *testing.T) {
+func newGzipBuffer(t *testing.T, data string) *bytes.Buffer {
+	var buf bytes.Buffer
+	gz := gzip.NewWriter(&buf)
+	_, err := gz.Write([]byte(data))
+	require.NoError(t, err)
+	require.NoError(t, gz.Close())
+	return &buf
+}
+
+func TestHandleAPIPostShortenWithGzip(t *testing.T) {
 	router := chi.NewRouter()
 	SetBaseURL("http://localhost:8080")
 	router.Post("/api/shorten", HandleAPIPostShorten)
@@ -65,12 +77,14 @@ func TestHandleAPIPostShorten(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	gzipBody := newGzipBuffer(t, string(body))
 
-	req, err := http.NewRequest(http.MethodPost, "/api/shorten", bytes.NewBuffer(body))
+	req, err := http.NewRequest(http.MethodPost, "/api/shorten", gzipBody)
 	if err != nil {
 		t.Fatal(err)
 	}
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Encoding", "gzip")
+	req.Header.Set("Accept-Encoding", "gzip")
 
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
@@ -82,9 +96,11 @@ func TestHandleAPIPostShorten(t *testing.T) {
 	var respBody struct {
 		Result string `json:"result"`
 	}
-	if err := json.NewDecoder(rr.Body).Decode(&respBody); err != nil {
-		t.Fatal(err)
-	}
+	zr, err := gzip.NewReader(rr.Body)
+	require.NoError(t, err)
+	err = json.NewDecoder(zr).Decode(&respBody)
+	require.NoError(t, err)
+	require.NoError(t, zr.Close())
 
 	shortURL := respBody.Result
 	if !strings.HasPrefix(shortURL, "http://localhost:8080/") {

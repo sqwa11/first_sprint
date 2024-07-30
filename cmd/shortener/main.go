@@ -1,9 +1,12 @@
 package main
 
 import (
+	"compress/gzip"
 	"go.uber.org/zap"
+	"io"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -25,6 +28,7 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(WithLogging(logger)) // Добавляем middleware логирования
+	r.Use(GzipMiddleware)      // Добавляем middleware для gzip
 
 	post.SetBaseURL(cfg.BaseURL)
 
@@ -90,4 +94,89 @@ func WithLogging(logger *zap.SugaredLogger) func(http.Handler) http.Handler {
 			)
 		})
 	}
+}
+
+func GzipMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Обработка сжатых запросов
+		if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
+			cr, err := newCompressReader(r.Body)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			r.Body = cr
+			defer cr.Close()
+		}
+
+		// Определение, нужно ли использовать сжатие для ответа
+		w.Header().Set("Vary", "Accept-Encoding")
+		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+			rw := newCompressWriter(w)
+			defer rw.Close()
+			next.ServeHTTP(rw, r)
+		} else {
+			next.ServeHTTP(w, r)
+		}
+	})
+}
+
+type compressWriter struct {
+	w  http.ResponseWriter
+	zw *gzip.Writer
+}
+
+func newCompressWriter(w http.ResponseWriter) *compressWriter {
+	gz, _ := gzip.NewWriterLevel(w, gzip.BestCompression)
+	return &compressWriter{
+		w:  w,
+		zw: gz,
+	}
+}
+
+func (c *compressWriter) Header() http.Header {
+	return c.w.Header()
+}
+
+func (c *compressWriter) Write(p []byte) (int, error) {
+	return c.zw.Write(p)
+}
+
+func (c *compressWriter) WriteHeader(statusCode int) {
+	if statusCode < 300 {
+		c.w.Header().Set("Content-Encoding", "gzip")
+	}
+	c.w.WriteHeader(statusCode)
+}
+
+func (c *compressWriter) Close() error {
+	return c.zw.Close()
+}
+
+// compressReader реализует интерфейс io.ReadCloser и позволяет декомпрессировать данные
+type compressReader struct {
+	r  io.ReadCloser
+	zr *gzip.Reader
+}
+
+func newCompressReader(r io.ReadCloser) (*compressReader, error) {
+	zr, err := gzip.NewReader(r)
+	if err != nil {
+		return nil, err
+	}
+	return &compressReader{
+		r:  r,
+		zr: zr,
+	}, nil
+}
+
+func (c *compressReader) Read(p []byte) (n int, err error) {
+	return c.zr.Read(p)
+}
+
+func (c *compressReader) Close() error {
+	if err := c.r.Close(); err != nil {
+		return err
+	}
+	return c.zr.Close()
 }
