@@ -20,11 +20,17 @@ func TestHandleShortenWithGzip(t *testing.T) {
 	router.Post("/", HandleShorten)
 
 	longURL := "https://example.com"
-	body := newGzipBuffer(t, longURL)
-	req, err := http.NewRequest(http.MethodPost, "/", body)
-	if err != nil {
-		t.Fatal(err)
-	}
+	body := bytes.NewBufferString(longURL)
+
+	// Создание сжатого тела запроса
+	var compressedBody bytes.Buffer
+	gzipWriter := gzip.NewWriter(&compressedBody)
+	_, err := io.Copy(gzipWriter, body)
+	require.NoError(t, err)
+	gzipWriter.Close()
+
+	req, err := http.NewRequest(http.MethodPost, "/", &compressedBody)
+	require.NoError(t, err)
 	req.Header.Set("Content-Encoding", "gzip")
 
 	rr := httptest.NewRecorder()
@@ -34,10 +40,13 @@ func TestHandleShortenWithGzip(t *testing.T) {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusCreated)
 	}
 
-	responseBody, err := io.ReadAll(rr.Body)
-	if err != nil {
-		t.Fatal(err)
-	}
+	// Распаковка сжатого ответа
+	gzipReader, err := gzip.NewReader(rr.Body)
+	require.NoError(t, err)
+	defer gzipReader.Close()
+
+	responseBody, err := io.ReadAll(gzipReader)
+	require.NoError(t, err)
 
 	shortURL := strings.TrimSpace(string(responseBody))
 	if !strings.HasPrefix(shortURL, "http://localhost:8080/") {
@@ -54,15 +63,6 @@ func TestHandleShortenWithGzip(t *testing.T) {
 	}
 }
 
-func newGzipBuffer(t *testing.T, data string) *bytes.Buffer {
-	var buf bytes.Buffer
-	gz := gzip.NewWriter(&buf)
-	_, err := gz.Write([]byte(data))
-	require.NoError(t, err)
-	require.NoError(t, gz.Close())
-	return &buf
-}
-
 func TestHandleAPIPostShortenWithGzip(t *testing.T) {
 	router := chi.NewRouter()
 	SetBaseURL("http://localhost:8080")
@@ -74,17 +74,19 @@ func TestHandleAPIPostShortenWithGzip(t *testing.T) {
 		URL: "https://practicum.yandex.ru",
 	}
 	body, err := json.Marshal(reqBody)
-	if err != nil {
-		t.Fatal(err)
-	}
-	gzipBody := newGzipBuffer(t, string(body))
+	require.NoError(t, err)
 
-	req, err := http.NewRequest(http.MethodPost, "/api/shorten", gzipBody)
-	if err != nil {
-		t.Fatal(err)
-	}
+	// Создание сжатого тела запроса
+	var compressedBody bytes.Buffer
+	gzipWriter := gzip.NewWriter(&compressedBody)
+	_, err = gzipWriter.Write(body)
+	require.NoError(t, err)
+	gzipWriter.Close()
+
+	req, err := http.NewRequest(http.MethodPost, "/api/shorten", &compressedBody)
+	require.NoError(t, err)
 	req.Header.Set("Content-Encoding", "gzip")
-	req.Header.Set("Accept-Encoding", "gzip")
+	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
@@ -93,14 +95,17 @@ func TestHandleAPIPostShortenWithGzip(t *testing.T) {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusCreated)
 	}
 
+	// Распаковка сжатого ответа
+	gzipReader, err := gzip.NewReader(rr.Body)
+	require.NoError(t, err)
+	defer gzipReader.Close()
+
 	var respBody struct {
 		Result string `json:"result"`
 	}
-	zr, err := gzip.NewReader(rr.Body)
-	require.NoError(t, err)
-	err = json.NewDecoder(zr).Decode(&respBody)
-	require.NoError(t, err)
-	require.NoError(t, zr.Close())
+	if err := json.NewDecoder(gzipReader).Decode(&respBody); err != nil {
+		t.Fatal(err)
+	}
 
 	shortURL := respBody.Result
 	if !strings.HasPrefix(shortURL, "http://localhost:8080/") {
