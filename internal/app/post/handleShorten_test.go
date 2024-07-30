@@ -2,10 +2,8 @@ package post
 
 import (
 	"bytes"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -17,13 +15,13 @@ func TestHandleShorten(t *testing.T) {
 	router.Post("/api/shorten", HandleShorten)
 
 	longURL := "https://example.com"
-	requestBody := map[string]string{"url": longURL}
-	body, _ := json.Marshal(requestBody)
-	req, err := http.NewRequest(http.MethodPost, "/api/shorten", bytes.NewBuffer(body))
+	body := bytes.NewBufferString(longURL)
+
+	req, err := http.NewRequest(http.MethodPost, "/api/shorten", body)
 	if err != nil {
 		t.Fatal(err)
 	}
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", "text/plain")
 
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
@@ -32,12 +30,8 @@ func TestHandleShorten(t *testing.T) {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusCreated)
 	}
 
-	var response map[string]string
-	if err := json.NewDecoder(rr.Body).Decode(&response); err != nil {
-		t.Fatal(err)
-	}
-
-	if !strings.HasPrefix(response["result"], "http://localhost:8080/") {
-		t.Errorf("handler returned unexpected body: got %v want %v", response["result"], "http://localhost:8080/")
+	expectedSubstring := "http://localhost:8080/"
+	if !bytes.Contains(rr.Body.Bytes(), []byte(expectedSubstring)) {
+		t.Errorf("handler returned unexpected body: got %v want substring %v", rr.Body.String(), expectedSubstring)
 	}
 }

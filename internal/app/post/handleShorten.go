@@ -38,7 +38,7 @@ func HandleShorten(w http.ResponseWriter, r *http.Request) {
 
 	response := baseURL + "/" + shortURL
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusCreated) // Возвращаем статус 201 Created
 	w.Write([]byte(`{"result":"` + response + `"}`))
 }
 
